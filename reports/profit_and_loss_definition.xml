@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <report 
+            id="action_report_profit_and_loss"
+            model="report.profit.and.loss"
+            string="Report Profit and Loss"
+            report_type="qweb-pdf"
+            name="report_profit_and_loss.report_profitandloss"
+            file="report_profit_and_loss.report_profitandloss"
+            menu="False"
+        />
+    </data>
+</openerp>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <record id="view_profit_and_loss_wizard" model="ir.ui.view">
+            <field name="name">Profit and Loss Report</field>
+            <field name="model">report.profit.and.loss</field>
+            <field name="arch" type="xml">
+                <form string="Profit and Loss">
+                    <separator string="Profit and Loss"/>                      
+                    <group>
+                        <field name="company_id"/>
+                        <field name="consolidated"/>
+                        <field name="period_from" domain="[('company_id','=',company_id)]"/>
+                        <field name="period_to" domain="[('company_id','=',company_id)]"/>
+                    </group>
+                    <footer>
+                        <button name="check_report" string="Print" type="object" class="oe_highlight"/>
+                        or
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_profit_and_loss_wizard" model="ir.actions.act_window">
+            <field name="name">Profit and Loss (AbAKUS)</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">report.profit.and.loss</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_profit_and_loss_wizard"/>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem
+            name="Profit and Loss (AbAKUS)"
+            parent="account.final_accounting_reports"
+            action="action_profit_and_loss_wizard"
+            id="profit_and_loss_menu"/>
+    </data>
+</openerp>
