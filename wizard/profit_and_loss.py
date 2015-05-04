@@ -52,6 +52,7 @@ class profit_and_loss_report(osv.osv_memory):
         
         for code in codes:
             for subcode in code['codes']:
+                """
                 if str(subcode['code']) == '70':
                     cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id, pc.name AS cat_name
                                   FROM account_move_line l
@@ -78,27 +79,30 @@ class profit_and_loss_report(osv.osv_memory):
                             subcode['sum']+= row['line_sum']
                     code['sum'] += subcode['sum']
 
-                else:   
-                    cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id
-                                  FROM account_move_line l
-                                  LEFT JOIN account_account acc ON (l.account_id = acc.id)
-                                  WHERE l.period_id IN %s
-                                  AND l.company_id = %s
-                                  AND acc.code LIKE %s
-                                  GROUP BY l.period_id''', (tuple(account_period_ids), wiz_data.company_id.id, str(subcode['code'])+'%'))                      
+                else:  
+                """
+                cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id
+                              FROM account_move_line l
+                              LEFT JOIN account_account acc ON (l.account_id = acc.id)
+                              WHERE l.period_id IN %s
+                              AND l.company_id = %s
+                              AND acc.code LIKE %s
+                              GROUP BY l.period_id''', (tuple(account_period_ids), wiz_data.company_id.id, str(subcode['code'])+'%'))                      
 
-                    for row in cr.dictfetchall():
-                        if row['line_sum']:
-                            tmp = "\n\nsubcode: %s, line_sum: %s, period_id: %s, code_query: %s,\n\n" % (subcode['code'], str(row['line_sum']),str(row['period_id']),str(subcode['code'])+'%')
-                            with open('/var/log/odoo/odoo-server.log', 'a') as f:
-                                f.write(tmp)
-                            for x in range(len(account_periods)):
-                                if str(account_periods[x]['id']) == str(row['period_id']):
-                                    subcode['periods'][x]['sum'] += row['line_sum']
-                                    code['periods'][x]['sum'] += row['line_sum']
-                                    break
-                            subcode['sum']+= row['line_sum']
-                    code['sum'] += subcode['sum']
+                for row in cr.dictfetchall():
+                    if row['line_sum']:
+                        """
+                        tmp = "\n\nsubcode: %s, line_sum: %s, period_id: %s, code_query: %s,\n\n" % (subcode['code'], str(row['line_sum']),str(row['period_id']),str(subcode['code'])+'%')
+                        with open('/var/log/odoo/odoo-server.log', 'a') as f:
+                            f.write(tmp)
+                        """    
+                        for x in range(len(account_periods)):
+                            if str(account_periods[x]['id']) == str(row['period_id']):
+                                subcode['periods'][x]['sum'] += row['line_sum']
+                                code['periods'][x]['sum'] += row['line_sum']
+                                break
+                        subcode['sum']+= row['line_sum']
+                code['sum'] += subcode['sum']
         
         result = {}
         result.update({
