@@ -32,7 +32,7 @@ class profit_and_loss_report(osv.osv_memory):
         for account_period in account_period_obj.browse(cr, uid, account_period_ids):
             account_periods.append({'id':account_period.id, 'name':account_period.name})
 
-        codes = [{'code':6, 'codes': [{'code':60},{'code':61},{'code':62},{'code':63},{'code':64},{'code':64},{'code':65}]},{'code':7, 'codes': [{'code':70},{'code':71},{'code':72},{'code':73},{'code':74},{'code':75}]}]
+        codes = [{'code':6, 'codes': [{'code':60},{'code':61},{'code':62},{'code':63},{'code':64},{'code':65}]},{'code':7, 'codes': [{'code':70},{'code':71},{'code':72},{'code':73},{'code':74},{'code':75}]}]
         
         def _init_code(code):
             code['name'] = ""
