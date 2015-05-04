@@ -52,7 +52,7 @@ class profit_and_loss_report(osv.osv_memory):
         
         for code in codes:
             for subcode in code['codes']:
-                if str(subcode['code']) == '70'
+                if str(subcode['code']) == '70':
                     cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id, pc.name AS cat_name
                                   FROM account_move_line l
                                   LEFT JOIN account_account acc ON (l.account_id = acc.id)
