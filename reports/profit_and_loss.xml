@@ -1,6 +1,25 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <openerp>
     <data>
+        <report 
+            id="action_report_profit_and_loss"
+            model="report.profit.and.loss"
+            string="Report Profit and Loss"
+            report_type="qweb-pdf"
+            name="report_profit_and_loss.report_profitandloss"
+            file="report_profit_and_loss.report_profitandloss"
+            menu="False"
+        />
+        
+        <record id="paperformat_default_with_landscape" model="report.paperformat">
+           <field name="name">Default with Landscape</field>
+           <field name="orientation">Landscape</field>
+        </record>
+
+        <record id="action_report_profit_and_loss" model="ir.actions.report.xml">
+            <field name="paperformat_id" ref="paperformat_default_with_landscape"/>
+        </record>   
+            
         <template id="report_profitandloss">
             <t t-call="report.html_container">
                 <t t-call="report.internal_layout">
@@ -32,27 +51,60 @@
                                     </t>
                                     <th>Balance</th>
                                 </tr>
+                            </thead>    
+                            <tbody>
                                 <t t-foreach="data['form']['codes']" t-as="code">
                                     <tr>
-                                        <th>...<span t-esc="code['code']"/>: <span t-esc="code['name']"/></th>
+                                        <th style="padding-left: 20px;"><span t-esc="code['code']"/>: <span t-esc="code['name']"/></th>
                                         <t t-foreach="code['periods']" t-as="periodCode">
-                                            <td><span t-esc="periodCode['sum']"/></td>
+                                            <td class="text-right"><span t-esc="periodCode['sum']"/> <span t-esc="data['form']['currency_symbol']"/></td>
                                         </t>
-                                        <th><span t-esc="code['sum']"/></th>
+                                        <th class="text-right"><span t-esc="code['sum']"/> <span t-esc="data['form']['currency_symbol']"/></th>
                                     </tr>
+                                    <t t-if="code['code'] == 7">
+                                        <t t-foreach="code['categories']" t-as="category">
+                                            <tr>
+                                                <th style="padding-left: 60px;"><span t-esc="category['name']"/></th>
+                                                <t t-foreach="category['periods']" t-as="periodCategory">
+                                                    <td class="text-right"><span t-esc="periodCategory['sum']"/> <span t-esc="data['form']['currency_symbol']"/></td>
+                                                </t>
+                                                <th class="text-right"><span t-esc="category['sum']"/> <span t-esc="data['form']['currency_symbol']"/></th>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                    
                                     <t t-foreach="code['codes']" t-as="subcode">
-                                        <tr>
-                                            <th>......<span t-esc="subcode['code']"/>: <span t-esc="subcode['name']"/></th>
-                                            <t t-foreach="subcode['periods']" t-as="periodSubcode">
-                                                <td><span t-esc="periodSubcode['sum']"/></td>
+                                        <t t-if="subcode['sum']>0">
+                                            <tr>
+                                                <th style="padding-left: 40px;"><span t-esc="subcode['code']"/>: <span t-esc="subcode['name']"/></th>
+                                                <t t-foreach="subcode['periods']" t-as="periodSubcode">
+                                                    <td class="text-right"><span t-esc="periodSubcode['sum']"/> <span t-esc="data['form']['currency_symbol']"/></td>
+                                                </t>
+                                                <th class="text-right"><span t-esc="subcode['sum']"/> <span t-esc="data['form']['currency_symbol']"/></th>
+                                            </tr>
+                                            <!--
+                                            <t t-if="subcode['code'] == 70">
+                                                <t t-foreach="subcode['categories']" t-as="category">
+                                                    <tr>
+                                                        <th>&#09;&#09;&#09;<span t-esc="category['name']"/></th>
+                                                        <t t-foreach="category['periods']" t-as="periodCategory">
+                                                            <td class="text-right"><span t-esc="periodCategory['sum']"/> <span t-esc="data['form']['currency_symbol']"/></td>
+                                                        </t>
+                                                        <th class="text-right"><span t-esc="category['sum']"/> <span t-esc="data['form']['currency_symbol']"/></th>
+                                                    </tr>
+                                                </t>
                                             </t>
-                                            <th><span t-esc="subcode['sum']"/></th>
-                                        </tr>
+                                            -->
+                                        </t>
                                     </t>
                                 </t>
-                            </thead>
-                            <tbody>
-                                
+                                <tr>
+                                    <th><span t-esc="data['form']['total']['name']"/></th>
+                                    <t t-foreach="data['form']['total']['periods']" t-as="period">
+                                        <th class="text-right"><span t-esc="period['sum']"/> <span t-esc="data['form']['currency_symbol']"/></th>
+                                    </t>
+                                    <th class="text-right"><span t-esc="data['form']['total']['sum']"/> <span t-esc="data['form']['currency_symbol']"/></th>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
