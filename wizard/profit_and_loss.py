@@ -14,6 +14,18 @@ class profit_and_loss_report(osv.osv_memory):
         'period_to': fields.many2one('account.period', string='End period'),
     }
 
+    def format_decimal_number(self, number, point_numbers=2, separator=','):
+        number_string = str(round(round(number, point_numbers+1),point_numbers))
+        for x in range(0, point_numbers):
+            if len(number_string[number_string.rfind('.')+1:]) < 2:
+                number_string += '0'
+            else:
+                break
+        number_string = number_string.replace('.',separator)
+        if (len(number_string) > 6 and number>=0) or (len(number_string) > 7 and number<0):
+            number_string = number_string[:len(number_string)-6] + '.' + number_string[len(number_string)-6:]
+        return number_string
+    
     def _get_datas(self, cr, uid, ids, context=None):
         account_account_obj = self.pool.get('account.account')
         account_period_obj = self.pool.get('account.period')
@@ -37,8 +49,10 @@ class profit_and_loss_report(osv.osv_memory):
         def _init_code(code):
             code['name'] = ""
             code['sum'] = 0
+            code['display'] = True
             code['periods'] = []
-            account_account_id = account_account_obj.search(cr, uid, [('code','=',str(code['code'])),('company_id','=',str(wiz_data.company_id.id))])
+            account_account_id = account_account_obj.search(cr, uid, [('code','=',code['code']),('company_id','=',wiz_data.company_id.id)])
+            
             if account_account_id:
                 account_account = account_account_obj.browse(cr, uid, account_account_id[0])
                 code['name'] = account_account.name
@@ -51,7 +65,7 @@ class profit_and_loss_report(osv.osv_memory):
                 _init_code(subcode)
         
         for code in codes:
-            if str(code['code']) == '7':
+            if str(code['code']) == '7':               
                 cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id, pc.name AS cat_name
                               FROM account_move_line l
                               LEFT JOIN account_account acc ON (l.account_id = acc.id)
@@ -85,7 +99,6 @@ class profit_and_loss_report(osv.osv_memory):
                                     cat_dict_tmp['periods'][x]['sum'] += row['line_sum']
                                     break
                             product_cat_dict[category_name] = cat_dict_tmp
-                        break
                 
                 keys = product_cat_dict.keys()
                 product_cat_list = []
@@ -95,59 +108,7 @@ class profit_and_loss_report(osv.osv_memory):
                 code['categories'] = product_cat_list
                 
             for subcode in code['codes']:
-                """
-                if str(code['code']) == '70':
-                    cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id, pc.name AS cat_name
-                                  FROM account_move_line l
-                                  LEFT JOIN account_account acc ON (l.account_id = acc.id)
-                                  LEFT JOIN product_product p ON (l.product_id = p.id)
-                                  LEFT JOIN product_template pt ON (p.product_tmpl_id = pt.id)
-                                  LEFT JOIN product_category pc ON (pt.categ_id = pc.id)
-                                  WHERE l.period_id IN %s
-                                  AND l.company_id = %s
-                                  AND acc.code LIKE %s
-                                  GROUP BY l.period_id, pc.name''', (tuple(account_period_ids), wiz_data.company_id.id, str(subcode['code'])+'%'))
-                    
-                    product_cat_dict = {}
-                    categories = []
-                    for row in cr.dictfetchall():
-                        if row['line_sum']:
-                            for x in range(len(account_periods)):
-                                if str(account_periods[x]['id']) == str(row['period_id']):
-                                    subcode['periods'][x]['sum'] += row['line_sum']
-                                    code['periods'][x]['sum'] += row['line_sum']
-                                    category_name = row['cat_name']
-                                    if product_cat_dict.has_key(category_name):
-                                        cat_dict_tmp = product_cat_dict[category_name]
-                                        for x in range(len(account_periods)):
-                                            if str(cat_dict_tmp['periods'][x]['id']) == str(row['period_id']):
-                                                cat_dict_tmp['periods'][x]['sum'] += row['line_sum']
-                                                break  
-                                        cat_dict_tmp['sum'] += row['line_sum']
-                                    else:
-                                        cat_dict_tmp = {'name': category_name, 'sum': row['line_sum']}
-                                        cat_dict_tmp['periods'] = []
-                                        for account_period in account_periods:
-                                            cat_dict_tmp['periods'].append({'id': account_period['id'], 'sum': 0})
-                                        for x in range(len(account_periods)):
-                                            if str(cat_dict_tmp['periods'][x]['id']) == str(row['period_id']):
-                                                cat_dict_tmp['periods'][x]['sum'] += row['line_sum']
-                                                break
-                                        product_cat_dict[category_name] = cat_dict_tmp
-                                    break
-                            subcode['sum']+= row['line_sum']
-                    code['sum'] += subcode['sum']
-                    
-                    keys = product_cat_dict.keys()
-                    product_cat_list = []
-                    for name in keys:
-                        product_cat_list.append(product_cat_dict[name])
-                    product_cat_list.sort(lambda x,y : cmp(x['name'], y['name']))
-                    subcode['categories'] = product_cat_list
-
-                else: 
-                """
-                cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id
+                cr.execute('''SELECT SUM(l.credit-l.debit) AS line_sum, l.period_id AS period_id
                               FROM account_move_line l
                               LEFT JOIN account_account acc ON (l.account_id = acc.id)
                               WHERE l.period_id IN %s
@@ -157,11 +118,6 @@ class profit_and_loss_report(osv.osv_memory):
 
                 for row in cr.dictfetchall():
                     if row['line_sum']:
-                        """
-                        tmp = "\n\nsubcode: %s, line_sum: %s, period_id: %s, code_query: %s,\n\n" % (subcode['code'], str(row['line_sum']),str(row['period_id']),str(subcode['code'])+'%')
-                        with open('/var/log/odoo/odoo-server.log', 'a') as f:
-                            f.write(tmp)
-                        """    
                         for x in range(len(account_periods)):
                             if str(account_periods[x]['id']) == str(row['period_id']):
                                 subcode['periods'][x]['sum'] += row['line_sum']
@@ -169,6 +125,15 @@ class profit_and_loss_report(osv.osv_memory):
                                 break
                         subcode['sum']+= row['line_sum']
                 code['sum'] += subcode['sum']
+        
+        for code in codes:
+            for subcode in code['codes']:
+                display = False
+                for period in subcode['periods']:
+                    if period['sum']!=0:
+                        display = True
+                        break
+                subcode['display'] = display
         
         total = {}
         total['name'] = "Total"
