@@ -9,7 +9,7 @@
                     <separator string="Profit and Loss"/>                      
                     <group>
                         <field name="company_id"/>
-                        <field name="consolidated"/>
+                        <!--<field name="consolidated"/>-->
                         <field name="period_from" domain="[('company_id','=',company_id)]"/>
                         <field name="period_to" domain="[('company_id','=',company_id)]"/>
                     </group>

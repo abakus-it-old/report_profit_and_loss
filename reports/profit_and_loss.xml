@@ -51,6 +51,13 @@
                                     </t>
                                     <th class="text-right">Balance</th>
                                 </tr>
+                                <tr>
+                                    <th><span t-esc="data['form']['total']['name']"/></th>
+                                    <t t-foreach="data['form']['total']['periods']" t-as="period">
+                                        <th class="text-right"><span t-esc="docs.format_decimal_number(period['sum'])"/> <span t-esc="data['form']['currency_symbol']"/></th>
+                                    </t>
+                                    <th class="text-right"><span t-esc="docs.format_decimal_number(data['form']['total']['sum'])"/> <span t-esc="data['form']['currency_symbol']"/></th>
+                                </tr>
                             </thead>    
                             <tbody>
                                 <t t-foreach="data['form']['codes']" t-as="code">
@@ -91,13 +98,6 @@
                                         </t>
                                     </t>
                                 </t>
-                                <tr>
-                                    <th><span t-esc="data['form']['total']['name']"/></th>
-                                    <t t-foreach="data['form']['total']['periods']" t-as="period">
-                                        <th class="text-right"><span t-esc="docs.format_decimal_number(period['sum'])"/> <span t-esc="data['form']['currency_symbol']"/></th>
-                                    </t>
-                                    <th class="text-right"><span t-esc="docs.format_decimal_number(data['form']['total']['sum'])"/> <span t-esc="data['form']['currency_symbol']"/></th>
-                                </tr>
                             </tbody>
                         </table>
                     </div>

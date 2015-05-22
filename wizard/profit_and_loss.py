@@ -68,6 +68,7 @@ class profit_and_loss_report(osv.osv_memory):
             if str(code['code']) == '7':               
                 cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id, pc.name AS cat_name
                               FROM account_move_line l
+                              LEFT JOIN account_move am ON (l.move_id=am.id)
                               LEFT JOIN account_account acc ON (l.account_id = acc.id)
                               LEFT JOIN product_product p ON (l.product_id = p.id)
                               LEFT JOIN product_template pt ON (p.product_tmpl_id = pt.id)
@@ -75,7 +76,8 @@ class profit_and_loss_report(osv.osv_memory):
                               WHERE l.period_id IN %s
                               AND l.company_id = %s
                               AND acc.code LIKE %s
-                              GROUP BY l.period_id, pc.name''', (tuple(account_period_ids), wiz_data.company_id.id, str(code['code'])+'%'))
+                              AND am.state = %s
+                              GROUP BY l.period_id, pc.name''', (tuple(account_period_ids), wiz_data.company_id.id, str(code['code'])+'%','posted'))
                 
                 product_cat_dict = {}
                 categories = []
@@ -111,10 +113,12 @@ class profit_and_loss_report(osv.osv_memory):
                 cr.execute('''SELECT SUM(l.credit-l.debit) AS line_sum, l.period_id AS period_id
                               FROM account_move_line l
                               LEFT JOIN account_account acc ON (l.account_id = acc.id)
+                              LEFT JOIN account_move am ON (l.move_id=am.id)
                               WHERE l.period_id IN %s
                               AND l.company_id = %s
                               AND acc.code LIKE %s
-                              GROUP BY l.period_id''', (tuple(account_period_ids), wiz_data.company_id.id, str(subcode['code'])+'%'))                      
+                              AND am.state = %s
+                              GROUP BY l.period_id''', (tuple(account_period_ids), wiz_data.company_id.id, str(subcode['code'])+'%','posted'))                   
 
                 for row in cr.dictfetchall():
                     if row['line_sum']:
