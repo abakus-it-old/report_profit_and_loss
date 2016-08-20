@@ -7,7 +7,7 @@
 
 This module has been developed by Bernard Delhez, intern @ AbAKUS it-solutions, under the control of Valentin Thirion.
     """,
-    'depends': ['account'],
+    'depends': ['account', 'account_report'],
     'data': [
         'wizard/profit_and_loss_view.xml',
         'reports/profit_and_loss.xml',
