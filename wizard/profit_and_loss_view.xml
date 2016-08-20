@@ -9,9 +9,8 @@
                     <separator string="Profit and Loss"/>                      
                     <group>
                         <field name="company_id"/>
-                        <!--<field name="consolidated"/>-->
-                        <field name="period_from" domain="[('company_id','=',company_id)]"/>
-                        <field name="period_to" domain="[('company_id','=',company_id)]"/>
+                        <field name="period_from"/>
+                        <field name="period_to"/>
                     </group>
                     <footer>
                         <button name="check_report" string="Print" type="object" class="oe_highlight"/>
@@ -23,7 +22,7 @@
         </record>
 
         <record id="action_profit_and_loss_wizard" model="ir.actions.act_window">
-            <field name="name">Profit and Loss (AbAKUS)</field>
+            <field name="name">Profit and Loss detail</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">report.profit.and.loss</field>
             <field name="view_type">form</field>
@@ -33,8 +32,8 @@
         </record>
 
         <menuitem
-            name="Profit and Loss (AbAKUS)"
-            parent="account.final_accounting_reports"
+            name="Profit and Loss detail (pdf)"
+            parent="account_report.account_reports_legal_statements_menu"
             action="action_profit_and_loss_wizard"
             id="profit_and_loss_menu"/>
     </data>
