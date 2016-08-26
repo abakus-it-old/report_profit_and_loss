@@ -4,9 +4,6 @@ import time
 from datetime import datetime
 from mx.DateTime import DateTime as mxDateTime, RelativeDateTime as mxRelativeDateTime
 
-import logging
-_logger = logging.getLogger(__name__)
-
 class profit_and_loss_report(models.TransientModel):
     _name = 'report.profit.and.loss.detail'
     _description = 'Profit and Loss detail'
@@ -166,28 +163,22 @@ class profit_and_loss_report(models.TransientModel):
                 total['periods'][x]['sum'] += code['periods'][x]['sum']
             total['sum'] += code['sum']
         
+        account_periods_names = []
+        for account_period in account_periods:
+            account_periods_names.append(account_period[:-3])
+
         result = {}
         result.update({
                         'company_name': self.company_id.name,
                         'date_start': self.date_start,
                         'date_end':  self.date_end,})
         result['codes'] = codes
-        result['periods'] = account_periods
+        result['periods'] = account_periods_names
         result['total'] = total
         result['currency_symbol'] = self.company_id.currency_id.symbol
         result['landscape'] = True
-        #return result
-        return {
-        'company_name':self.company_id.name,
-        'date_start':self.date_start,
-        'date_end':self.date_end,
-        'codes':codes,
-        'periods':account_periods,
-        'total':total,
-        'currency_symbol':self.company_id.currency_id.symbol,
-        'landscape':True,
-        }
-    
+        return result
+
     @api.multi
     def print_report(self):           
         data = {
