@@ -3,7 +3,7 @@
     <data>
         <report 
             id="action_report_profit_and_loss"
-            model="report.profit.and.loss"
+            model="report.profit.and.loss.detail"
             string="Report Profit and Loss"
             report_type="qweb-pdf"
             name="report_profit_and_loss.report_profitandloss"
@@ -33,12 +33,12 @@
                                 <p t-esc="data['form']['company_name']"/>
                             </div>
                             <div class="col-xs-4">
-                                <strong>Period start:</strong>
-                                <p t-esc="data['form']['period_start']"/>
+                                <strong>Start date:</strong>
+                                <p t-esc="data['form']['date_start']"/>
                             </div>
                             <div class="col-xs-4">
-                                <strong>Period end:</strong>
-                                <p t-esc="data['form']['period_end']"/>
+                                <strong>End date:</strong>
+                                <p t-esc="data['form']['date_end']"/>
                             </div>
                         </div>
 
@@ -47,7 +47,7 @@
                                 <tr>
                                     <th>Account</th>
                                     <t t-foreach="data['form']['periods']" t-as="periodTitle">
-                                        <th class="text-right"><span t-esc="periodTitle['name']"/></th>
+                                        <th class="text-right"><span t-esc="periodTitle"/></th>
                                     </t>
                                     <th class="text-right">Balance</th>
                                 </tr>

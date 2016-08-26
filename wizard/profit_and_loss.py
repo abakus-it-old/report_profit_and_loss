@@ -1,19 +1,23 @@
-﻿from openerp.osv import fields, osv
+﻿from openerp import fields, models, api
 from openerp.report import report_sxw
 import time
+from datetime import datetime
+from mx.DateTime import DateTime as mxDateTime, RelativeDateTime as mxRelativeDateTime
 
+import logging
+_logger = logging.getLogger(__name__)
 
-class profit_and_loss_report(osv.osv_memory):
-    _name = 'report.profit.and.loss'
-    _description = 'Profit and Loss'
+class profit_and_loss_report(models.TransientModel):
+    _name = 'report.profit.and.loss.detail'
+    _description = 'Profit and Loss detail'
 
-    _columns = {
-        'company_id': fields.many2one('res.company', string='Company'),
-        'consolidated': fields.boolean(string='Consolidated', default=False),
-        'period_from': fields.many2one('account.period', string='Start period'),
-        'period_to': fields.many2one('account.period', string='End period'),
-    }
+    def compute_default_company_id(self):
+        return self.env['res.users'].browse(self.env.uid).company_id.id
 
+    company_id = fields.Many2one(comodel_name='res.company', string='Company', default=compute_default_company_id)
+    date_start = fields.Date(string='Start date')
+    date_end = fields.Date(string='End date')
+    
     def format_decimal_number(self, number, point_numbers=2, separator=','):
         number_string = str(round(round(number, point_numbers+1),point_numbers))
         for x in range(0, point_numbers):
@@ -26,23 +30,30 @@ class profit_and_loss_report(osv.osv_memory):
             number_string = number_string[:len(number_string)-6] + '.' + number_string[len(number_string)-6:]
         return number_string
     
-    def _get_datas(self, cr, uid, ids, context=None):
-        account_account_obj = self.pool.get('account.account')
-        account_period_obj = self.pool.get('account.period')
-        wiz_data = self.browse(cr, uid, ids[0], context=context)
+    @api.model
+    def _get_data(self):
+        account_account_env = self.env['account.account']
         
+        date_format = "%Y-%m-%d"
+        date_start_datetime = datetime.strptime(self.date_start, date_format)
+        date_end_datetime = datetime.strptime(self.date_end, date_format)
+
+        #represents a table of string dates. All date starts at the first day of a month
         account_periods = []
-        account_period_ids = account_period_obj.search(cr, uid, [('date_start','>=',wiz_data.period_from.date_start),('date_stop','<=',wiz_data.period_to.date_stop),('company_id','=',wiz_data.company_id.id)], order='date_start')
-        if not account_period_ids:
-            return {
-                'warning': {
-                            'title': "Search error",
-                            'message': "No account periods found",
-                            },
-            }
+                
+        #start with the report start date
+        date_period_string = datetime.strptime(self.date_start, date_format).strftime("%Y-%m-01")
+        date_period_datetime = datetime.strptime(date_period_string, date_format)
+
+        while True:
+            if date_period_datetime > date_end_datetime:
+                break
             
-        for account_period in account_period_obj.browse(cr, uid, account_period_ids):
-            account_periods.append({'id':account_period.id, 'name':account_period.name})
+            account_periods.append(date_period_string)
+
+            date_period_mxDateTime = mxDateTime(date_period_datetime.year, date_period_datetime.month, date_period_datetime.day)+mxRelativeDateTime(months=1)
+            date_period_datetime = datetime(date_period_mxDateTime.year, date_period_mxDateTime.month, date_period_mxDateTime.day)
+            date_period_string = date_period_datetime.strftime("%Y-%m-%d")
 
         codes = [{'code':6, 'codes': [{'code':60},{'code':61},{'code':62},{'code':63},{'code':64},{'code':65},{'code':66},{'code':67},{'code':68},{'code':69}]},{'code':7, 'codes': [{'code':70},{'code':71},{'code':72},{'code':73},{'code':74},{'code':75},{'code':76},{'code':77},{'code':78},{'code':79}]}]
         
@@ -51,33 +62,36 @@ class profit_and_loss_report(osv.osv_memory):
             code['sum'] = 0
             code['display'] = True
             code['periods'] = []
-            account_account_id = account_account_obj.search(cr, uid, [('code','=',code['code']),('company_id','=',wiz_data.company_id.id)])
-            
-            if account_account_id:
-                account_account = account_account_obj.browse(cr, uid, account_account_id[0])
+            search_code = str(code['code'])
+            while len(search_code)<6:
+                search_code += '0'
+            account_account = account_account_env.search([('code','=',search_code),('company_id','=',self.company_id.id)], limit=1)
+            if account_account:
                 code['name'] = account_account.name
             for account_period in account_periods:
-                code['periods'].append({'id': account_period['id'], 'sum': 0})
+                code['periods'].append({'date': account_period, 'sum': 0})
         
         for code in codes:
             _init_code(code)
             for subcode in code['codes']:
                 _init_code(subcode)
         
+        cr = self.env.cr
         for code in codes:
             if str(code['code']) == '7':               
-                cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.period_id AS period_id, pc.name AS cat_name
+                cr.execute('''SELECT SUM(l.debit-l.credit) AS line_sum, l.date AS period_date, pc.name AS cat_name
                               FROM account_move_line l
                               LEFT JOIN account_move am ON (l.move_id=am.id)
                               LEFT JOIN account_account acc ON (l.account_id = acc.id)
                               LEFT JOIN product_product p ON (l.product_id = p.id)
                               LEFT JOIN product_template pt ON (p.product_tmpl_id = pt.id)
                               LEFT JOIN product_category pc ON (pt.categ_id = pc.id)
-                              WHERE l.period_id IN %s
+                              WHERE l.date >= %s
+                              AND l.date <= %s
                               AND l.company_id = %s
                               AND acc.code LIKE %s
                               AND am.state = %s
-                              GROUP BY l.period_id, pc.name''', (tuple(account_period_ids), wiz_data.company_id.id, str(code['code'])+'%','posted'))
+                              GROUP BY l.date, pc.name''', (self.date_start, self.date_end, self.company_id.id, str(code['code'])+'%','posted'))
                 
                 product_cat_dict = {}
                 categories = []
@@ -87,7 +101,7 @@ class profit_and_loss_report(osv.osv_memory):
                         if product_cat_dict.has_key(category_name):
                             cat_dict_tmp = product_cat_dict[category_name]
                             for x in range(len(account_periods)):
-                                if str(cat_dict_tmp['periods'][x]['id']) == str(row['period_id']):
+                                if str(cat_dict_tmp['periods'][x]['date']) == datetime.strptime(str(row['period_date']), date_format).strftime("%Y-%m-01"):
                                     cat_dict_tmp['periods'][x]['sum'] += row['line_sum']
                                     break  
                             cat_dict_tmp['sum'] += row['line_sum']
@@ -95,9 +109,9 @@ class profit_and_loss_report(osv.osv_memory):
                             cat_dict_tmp = {'name': category_name, 'sum': row['line_sum']}
                             cat_dict_tmp['periods'] = []
                             for account_period in account_periods:
-                                cat_dict_tmp['periods'].append({'id': account_period['id'], 'sum': 0})
+                                cat_dict_tmp['periods'].append({'date': account_period, 'sum': 0})
                             for x in range(len(account_periods)):
-                                if str(cat_dict_tmp['periods'][x]['id']) == str(row['period_id']):
+                                if str(cat_dict_tmp['periods'][x]['date']) == datetime.strptime(str(row['period_date']), date_format).strftime("%Y-%m-01"):
                                     cat_dict_tmp['periods'][x]['sum'] += row['line_sum']
                                     break
                             product_cat_dict[category_name] = cat_dict_tmp
@@ -110,20 +124,21 @@ class profit_and_loss_report(osv.osv_memory):
                 code['categories'] = product_cat_list
                 
             for subcode in code['codes']:
-                cr.execute('''SELECT SUM(l.credit-l.debit) AS line_sum, l.period_id AS period_id
+                cr.execute('''SELECT SUM(l.credit-l.debit) AS line_sum, l.date AS period_date
                               FROM account_move_line l
                               LEFT JOIN account_account acc ON (l.account_id = acc.id)
                               LEFT JOIN account_move am ON (l.move_id=am.id)
-                              WHERE l.period_id IN %s
+                              WHERE l.date >= %s
+                              AND l.date <= %s
                               AND l.company_id = %s
                               AND acc.code LIKE %s
                               AND am.state = %s
-                              GROUP BY l.period_id''', (tuple(account_period_ids), wiz_data.company_id.id, str(subcode['code'])+'%','posted'))                   
+                              GROUP BY l.date''', (self.date_start, self.date_end, self.company_id.id, str(subcode['code'])+'%','posted'))                   
 
                 for row in cr.dictfetchall():
                     if row['line_sum']:
                         for x in range(len(account_periods)):
-                            if str(account_periods[x]['id']) == str(row['period_id']):
+                            if str(account_periods[x]) == datetime.strptime(str(row['period_date']), date_format).strftime("%Y-%m-01"):
                                 subcode['periods'][x]['sum'] += row['line_sum']
                                 code['periods'][x]['sum'] += row['line_sum']
                                 break
@@ -144,7 +159,7 @@ class profit_and_loss_report(osv.osv_memory):
         total['sum'] = 0
         total['periods'] = []
         for account_period in account_periods:
-            total['periods'].append({'id': account_period['id'], 'sum': 0})
+            total['periods'].append({'date': account_period, 'sum': 0})
         
         for code in codes:
             for x in range(len(account_periods)):
@@ -153,23 +168,34 @@ class profit_and_loss_report(osv.osv_memory):
         
         result = {}
         result.update({
-                        'company_name': wiz_data.company_id.name,
-                        'period_start': wiz_data.period_from.name,
-                        'period_end':  wiz_data.period_to.name,})
+                        'company_name': self.company_id.name,
+                        'date_start': self.date_start,
+                        'date_end':  self.date_end,})
         result['codes'] = codes
         result['periods'] = account_periods
         result['total'] = total
-        result['currency_symbol'] = wiz_data.company_id.currency_id.symbol
-        return result
-        
-    def check_report(self, cr, uid, ids, context=None):     
-        datas = {
-            'ids': ids,
-            'model': 'report.profit.and.loss',
-            'form': self._get_datas(cr, uid, ids)
+        result['currency_symbol'] = self.company_id.currency_id.symbol
+        result['landscape'] = True
+        #return result
+        return {
+        'company_name':self.company_id.name,
+        'date_start':self.date_start,
+        'date_end':self.date_end,
+        'codes':codes,
+        'periods':account_periods,
+        'total':total,
+        'currency_symbol':self.company_id.currency_id.symbol,
+        'landscape':True,
         }
-
-        return self.pool['report'].get_action(cr, uid, [], 'report_profit_and_loss.report_profitandloss', data=datas, context=context)
+    
+    @api.multi
+    def print_report(self):           
+        data = {
+                'ids': self.ids,
+                'model': 'report.profit.and.loss.detail',
+                'form': self._get_data(),
+               }
+        return self.env['report'].get_action(self, 'report_profit_and_loss.report_profitandloss', data=data)
 
 class profit_and_loss_report_print(report_sxw.rml_parse):
     def __init__(self, cr, uid, name, context):
@@ -178,7 +204,7 @@ class profit_and_loss_report_print(report_sxw.rml_parse):
             'time': time,
         })
 
-class wrapped_profit_and_loss_report_print(osv.AbstractModel):
+class wrapped_profit_and_loss_report_print(models.AbstractModel):
     _name = 'report.report_profit_and_loss.report_profitandloss'
     _inherit = 'report.abstract_report'
     _template = 'report_profit_and_loss.report_profitandloss'

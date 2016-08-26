@@ -3,17 +3,17 @@
     <data>
         <record id="view_profit_and_loss_wizard" model="ir.ui.view">
             <field name="name">Profit and Loss Report</field>
-            <field name="model">report.profit.and.loss</field>
+            <field name="model">report.profit.and.loss.detail</field>
             <field name="arch" type="xml">
                 <form string="Profit and Loss">
                     <separator string="Profit and Loss"/>                      
                     <group>
                         <field name="company_id"/>
-                        <field name="period_from"/>
-                        <field name="period_to"/>
+                        <field name="date_start"/>
+                        <field name="date_end"/>
                     </group>
                     <footer>
-                        <button name="check_report" string="Print" type="object" class="oe_highlight"/>
+                        <button name="print_report" string="Print" type="object" class="oe_highlight"/>
                         or
                         <button string="Cancel" class="oe_link" special="cancel"/>
                     </footer>
@@ -24,7 +24,7 @@
         <record id="action_profit_and_loss_wizard" model="ir.actions.act_window">
             <field name="name">Profit and Loss detail</field>
             <field name="type">ir.actions.act_window</field>
-            <field name="res_model">report.profit.and.loss</field>
+            <field name="res_model">report.profit.and.loss.detail</field>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>
             <field name="view_id" ref="view_profit_and_loss_wizard"/>
@@ -33,7 +33,7 @@
 
         <menuitem
             name="Profit and Loss detail (pdf)"
-            parent="account_report.account_reports_legal_statements_menu"
+            parent="account_reports.account_reports_legal_statements_menu"
             action="action_profit_and_loss_wizard"
             id="profit_and_loss_menu"/>
     </data>
