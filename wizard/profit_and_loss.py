@@ -12,8 +12,8 @@ class profit_and_loss_report(models.TransientModel):
         return self.env['res.users'].browse(self.env.uid).company_id.id
 
     company_id = fields.Many2one(comodel_name='res.company', string='Company', default=compute_default_company_id)
-    date_start = fields.Date(string='Start date')
-    date_end = fields.Date(string='End date')
+    date_start = fields.Date(string='Start date', required=True)
+    date_end = fields.Date(string='End date', required=True)
     
     def format_decimal_number(self, number, point_numbers=2, separator=','):
         number_string = str(round(round(number, point_numbers+1),point_numbers))
